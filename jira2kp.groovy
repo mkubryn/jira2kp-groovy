@@ -3,7 +3,6 @@
 if(args.size() != 2) {
   println """
     Usage: jira2kp [date from] [date to]
-    
     Expml: jira2kp 23.11.2013 30.12.2013
   """
   System.exit(2)

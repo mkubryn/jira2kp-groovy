@@ -95,7 +95,7 @@ loginResp = executePost(JIRA_LOGIN_URL, [new Pair('os_password', jiraPassword as
 
 // 2. Check response
 if((loginResp ==~ '.*"loginSucceeded":true.*') == false) {
-    println "Jira login failed. Response from Jira: " + loginResponse
+    println "\nERROR: Jira login failed. Response from Jira: " + loginResp
     System.exit(1)
 }
 

@@ -1,11 +1,16 @@
 // author: mkubryn
 
-JIRA_LOGIN_URL = "https://jira.7bulls.com/rest/gadget/1.0/login"
-JIRA_GET_REPORT_URL = "https://jira.7bulls.com/secure/ConfigureReport!excelView.jspa?showDetails=true&endDate=3%2Flis%2F13&startDate=1%2Fpa%C5%BA%2F13&weekends=true&reportKey=jira-timesheet-plugin%3Areport&targetUser="
-
+if(args.size() != 2) {
+  println """
+    Usage: jira2kp [date from] [date to]
+    
+    Expml: jira2kp 23.11.13 30.12.13
+  """
+  System.exit(2)
+}
 
 /*
- * Imports and grape
+ * Imports and Grape
  */
 @Grab(group='org.apache.httpcomponents', module='httpclient', version='4.3.1') 
 import org.apache.http.impl.client.*
@@ -15,38 +20,43 @@ import org.apache.http.protocol.HTTP
 import org.apache.http.message.BasicNameValuePair as Pair
 import org.apache.http.util.EntityUtils
 import groovy.transform.*
+import java.net.*
 
 /*
  * MISC
  */
-JIRA_REPORT_CHUNKS_COUNT = 7
 JIRA_DATE_FORMAT = new java.text.SimpleDateFormat("dd/MMM/yy", new Locale("pl"))
 KP_DATE_FORMAT = new java.text.SimpleDateFormat("dd.MM.yyyy")
+JIRA_REPORT_CHUNKS_COUNT = 7
 
-def asBigDecimal = { str ->
-    str.replaceAll(',','.') as BigDecimal
-}
-
+def asBigDecimal = { str -> str.replaceAll(',','.') as BigDecimal }
 def readPasswordFromConsole = { question -> System.console().readPassword question }
 def readFromConsole = { question -> System.console().readLine question }
+def getDateForJira = { param -> URLEncoder.encode( JIRA_DATE_FORMAT.format(KP_DATE_FORMAT.parse(param)), "UTF-8") }
 
+reportFrom = getDateForJira(args[0])
+reportTo = getDateForJira(args[1])
 
+JIRA_LOGIN_URL = "https://jira.7bulls.com/rest/gadget/1.0/login"
+JIRA_GET_REPORT_URL = "https://jira.7bulls.com/secure/ConfigureReport!excelView.jspa?showDetails=true&endDate=${reportTo}&startDate=${reportFrom}&weekends=true&reportKey=jira-timesheet-plugin%3Areport&targetUser="
+
+println "using URL: " + JIRA_GET_REPORT_URL
 /*
  * Report entry holder
  */
- @ToString
+@ToString 
 class ReportEntry { def project, issueType, issueId, date, user, timeSpent, description }
 
 
 /*
  * Http communication with Jira
  */
-client = new DefaultHttpClient()
-def executeGet = { url ->  EntityUtils.toString(client.execute(new HttpGet(url)).getEntity()) }
-def executePost = { url, params ->
+httpClient = new DefaultHttpClient()
+def executeHttpGet = { url ->  EntityUtils.toString(httpClient.execute(new HttpGet(url)).getEntity()) }
+def executeHttpPost = { url, params ->
     action = new HttpPost(url)
     action.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8))
-    EntityUtils.toString(client.execute(action).getEntity())
+    EntityUtils.toString(httpClient.execute(action).getEntity())
 }
 
 
@@ -85,13 +95,14 @@ def parseReportHtml = { html ->
 
 
 /*
- * Script flow
+ * Script main flow
  */
+
 jiraUsername = readFromConsole("Jira login: ")
 jiraPassword = readPasswordFromConsole("Jira password: ")
 
 // 1. Login ang get response
-loginResp = executePost(JIRA_LOGIN_URL, [new Pair('os_password', jiraPassword as String), new Pair('os_username', jiraUsername)])
+loginResp = executeHttpPost(JIRA_LOGIN_URL, [new Pair('os_password', jiraPassword as String), new Pair('os_username', jiraUsername)])
 
 // 2. Check response
 if((loginResp ==~ '.*"loginSucceeded":true.*') == false) {
@@ -100,20 +111,18 @@ if((loginResp ==~ '.*"loginSucceeded":true.*') == false) {
 }
 
 // 3. Get timesheet
-timesheetHtml = executeGet(JIRA_GET_REPORT_URL)
+timesheetHtml = executeHttpGet(JIRA_GET_REPORT_URL)
 
 // 4. Parse entries and group by project and date (here comes the real Groovy power!)
-entries = parseReportHtml(timesheetHtml).groupBy ( {it.project}, { JIRA_DATE_FORMAT.parse(it.date) } ).sort()
+entries = parseReportHtml(timesheetHtml).groupBy ( {it.project}, { JIRA_DATE_FORMAT.parse(it.date) } )
 
 
-/*
- * 5. Create report
- */
+// 5. create report
 entries.each { project, entriesByDateMap ->
 
     println "\n\n[$project]"
     
-    entriesByDateMap.each { date, reportEntries ->
+    entriesByDateMap.sort().each { date, reportEntries ->
         hoursSpent = reportEntries.sum { asBigDecimal(it.timeSpent) }
         println "\n${KP_DATE_FORMAT.format(date)} -- $jiraUsername -- ${hoursSpent}h"
         

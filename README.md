@@ -18,7 +18,12 @@ Wymagania:
 Używanie (na posdstawie przykładu):
 
 ```
-$ groovy jira2kp.groovy
+$ groovy jira2kp.groovy --help
+
+    Usage: jira2kp [date from] [date to]
+    Expml: jira2kp 23.11.2013 30.12.2013
+    
+$ groovy jira2kp.groovy 04.10.2013 29.10.2013
 Jira login: 7bcusername
 Jira password: 
 

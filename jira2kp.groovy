@@ -40,7 +40,7 @@ reportTo = getDateForJira(args[1])
 JIRA_LOGIN_URL = "https://jira.7bulls.com/rest/gadget/1.0/login"
 JIRA_GET_REPORT_URL = "https://jira.7bulls.com/secure/ConfigureReport!excelView.jspa?showDetails=true&endDate=${reportTo}&startDate=${reportFrom}&weekends=true&reportKey=jira-timesheet-plugin%3Areport&targetUser="
 
-println "using URL: " + JIRA_GET_REPORT_URL
+
 /*
  * Report entry holder
  */

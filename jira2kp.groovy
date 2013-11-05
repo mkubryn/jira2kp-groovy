@@ -123,7 +123,7 @@ entries.each { project, entriesByDateMap ->
     
     entriesByDateMap.sort().each { date, reportEntries ->
         hoursSpent = reportEntries.sum { asBigDecimal(it.timeSpent) }
-        println "\n${KP_DATE_FORMAT.format(date)} -- $jiraUsername -- ${hoursSpent}h"
+        println "\n${KP_DATE_FORMAT.format(date)} -- ${hoursSpent}h -- $jiraUsername"
         
         reportEntries.each { entry ->
             println "  ${entry.issueType}: ${entry.issueId} - ${entry.description} - (${entry.timeSpent}h)"
